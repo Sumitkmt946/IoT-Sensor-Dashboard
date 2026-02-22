@@ -1,0 +1,91 @@
+version: "3.8"
+
+services:
+  # ── MySQL Database ──────────────────────────────────────────────────────
+  mysql:
+    image: mysql:8.0
+    container_name: sensor-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: sensor_dashboard
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Mosquitto MQTT Broker ───────────────────────────────────────────────
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: sensor-mosquitto
+    restart: always
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./mosquitto/config:/mosquitto/config
+      - mosquitto_data:/mosquitto/data
+      - mosquitto_log:/mosquitto/log
+
+  # ── FastAPI Backend ─────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sensor-backend
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_USER: root
+      DB_PASSWORD: rootpassword
+      DB_NAME: sensor_dashboard
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mosquitto:
+        condition: service_started
+
+  # ── React Frontend ──────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sensor-frontend
+    restart: always
+    ports:
+      - "5173:5173"
+    environment:
+      - API_URL=http://backend:8000
+    depends_on:
+      - backend
+
+  # ── MQTT Simulator (optional – start manually) ─────────────────────────
+  simulator:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sensor-simulator
+    command: [ "python", "-m", "simulator.mqtt_simulator" ]
+    environment:
+      MQTT_BROKER_HOST: mosquitto
+      MQTT_BROKER_PORT: 1883
+    depends_on:
+      - mosquitto
+      - backend
+    profiles:
+      - simulator
+
+volumes:
+  mysql_data:
+  mosquitto_data:
+  mosquitto_log:

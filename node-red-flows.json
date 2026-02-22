@@ -1,0 +1,70 @@
+[
+    {
+        "id": "flow1",
+        "type": "tab",
+        "label": "Sensor Data Publisher",
+        "info": "Publishes random sensor data to MQTT topics every 3 seconds"
+    },
+    {
+        "id": "inject1",
+        "type": "inject",
+        "z": "flow1",
+        "name": "Every 3 seconds",
+        "repeat": "3",
+        "payload": "",
+        "payloadType": "date",
+        "topic": "",
+        "x": 150,
+        "y": 100,
+        "wires": [
+            [
+                "function1"
+            ]
+        ]
+    },
+    {
+        "id": "function1",
+        "type": "function",
+        "z": "flow1",
+        "name": "Generate Sensor Data",
+        "func": "const topics = [\n    'sensor/plant1/boiler',\n    'sensor/plant1/turbine',\n    'sensor/plant2/compressor',\n    'sensor/plant2/generator',\n    'sensor/plant3/hvac',\n    'sensor/plant3/motor',\n    'sensor/warehouse/cold_storage',\n    'sensor/warehouse/conveyor'\n];\n\nconst randomFloat = (min, max) => +(Math.random() * (max - min) + min).toFixed(2);\n\n// Pick a random topic\nconst topic = topics[Math.floor(Math.random() * topics.length)];\n\n// Generate sensor values (occasionally out of range)\nconst breach = Math.random() < 0.2;\n\nmsg.topic = topic;\nmsg.payload = {\n    temperature: breach && Math.random() < 0.3 ? randomFloat(60, 85) : randomFloat(-10, 60),\n    humidity: breach && Math.random() < 0.3 ? randomFloat(90, 100) : randomFloat(10, 90),\n    voltage: breach && Math.random() < 0.3 ? randomFloat(260, 320) : randomFloat(180, 260),\n    current: breach && Math.random() < 0.3 ? randomFloat(30, 50) : randomFloat(0, 30),\n    pressure: breach && Math.random() < 0.3 ? randomFloat(1050, 1200) : randomFloat(950, 1050)\n};\n\nreturn msg;",
+        "outputs": 1,
+        "x": 400,
+        "y": 100,
+        "wires": [
+            [
+                "mqtt_out1",
+                "debug1"
+            ]
+        ]
+    },
+    {
+        "id": "mqtt_out1",
+        "type": "mqtt out",
+        "z": "flow1",
+        "name": "Publish to MQTT",
+        "topic": "",
+        "broker": "mqtt_broker",
+        "x": 650,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "debug1",
+        "type": "debug",
+        "z": "flow1",
+        "name": "Log Output",
+        "active": true,
+        "tosidebar": true,
+        "x": 650,
+        "y": 130,
+        "wires": []
+    },
+    {
+        "id": "mqtt_broker",
+        "type": "mqtt-broker",
+        "name": "Mosquitto Local",
+        "broker": "localhost",
+        "port": "1883"
+    }
+]
