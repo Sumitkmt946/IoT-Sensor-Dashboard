@@ -2,6 +2,8 @@
 
 A **full-stack real-time IoT sensor monitoring** application built with **FastAPI** (Python) backend and **React.js** frontend. The backend subscribes to MQTT topics, stores sensor data in MySQL, and generates threshold-based alerts. The React frontend visualizes everything in a sleek, modern dashboard.
 
+### Demo Video Link: https://drive.google.com/file/d/1gDFs_5Kh7spZcuSQ9HZFrQHRydQNyEEG/view?usp=sharing
+
 ---
 
 ## 📋 Table of Contents
